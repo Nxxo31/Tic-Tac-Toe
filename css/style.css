@@ -1,0 +1,193 @@
+/* ── Reset & Base ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #e0e0e0;
+}
+
+/* ── Container ────────────────────────────────────── */
+.container {
+  background: rgba(255,255,255,.06);
+  backdrop-filter: blur(12px);
+  border-radius: 2.5rem;
+  padding: 2.5rem 2.5rem 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,.6);
+  border: 1px solid rgba(255,255,255,.08);
+  width: 420px;
+  max-width: 94vw;
+  text-align: center;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  margin-bottom: .25rem;
+  background: linear-gradient(90deg, #f7971e, #ffd200);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  color: rgba(255,255,255,.35);
+  margin-bottom: 1.25rem;
+}
+
+/* ── Scoreboard ──────────────────────────────────── */
+.scoreboard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1.5rem;
+}
+.score-card {
+  flex: 1;
+  padding: .6rem .4rem;
+  border-radius: 1rem;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.06);
+  transition: background .3s, transform .3s;
+}
+.score-card.active {
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
+  transform: scale(1.04);
+}
+.score-card .label {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  opacity: .6;
+}
+.score-card .score {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.score-card.x .score { color: #60a5fa; }
+.score-card.o .score { color: #f472b6; }
+.score-divider {
+  font-size: .8rem;
+  opacity: .25;
+  padding: 0 .15rem;
+}
+.score-card.draws .score { color: #a78bfa; }
+
+/* ── Turn indicator ──────────────────────────────── */
+.turn-indicator {
+  margin-bottom: 1.25rem;
+  font-size: .9rem;
+}
+.turn-indicator .mark {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.turn-indicator .mark.x { color: #60a5fa; }
+.turn-indicator .mark.o { color: #f472b6; }
+
+/* ── Board ────────────────────────────────────────── */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0 auto 1.5rem;
+  max-width: 320px;
+}
+.cell {
+  aspect-ratio: 1 / 1;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 1.2rem;
+  font-size: 2.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s, transform .2s, box-shadow .25s;
+  user-select: none;
+  position: relative;
+}
+.cell:hover:not(.taken):not(.game-over) {
+  background: rgba(255,255,255,.10);
+  transform: scale(1.03);
+}
+.cell.taken { cursor: default; }
+.cell.game-over { cursor: default; }
+.cell.win {
+  background: rgba(255,255,255,.10);
+  box-shadow: 0 0 20px rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.25);
+}
+.cell span {
+  display: inline-block;
+  transition: transform .2s;
+}
+
+/* ── Animations ──────────────────────────────────── */
+@keyframes pop-in {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.cell span.pop { animation: pop-in .3s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,255,255,.06); }
+  50%      { box-shadow: 0 0 22px rgba(255,255,255,.18); }
+}
+.cell.win { animation: pulse-glow 1.2s ease-in-out infinite; }
+
+@keyframes slide-up-fade {
+  0%   { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0);   opacity: 1; }
+}
+.status-message { animation: slide-up-fade .3s ease-out; }
+
+/* ── Status & Buttons ────────────────────────────── */
+.status-message {
+  min-height: 2rem;
+  margin-bottom: 1rem;
+  font-size: .95rem;
+  font-weight: 500;
+}
+.status-message.win  { color: #4ade80; }
+.status-message.draw { color: #a78bfa; }
+
+.btn-group {
+  display: flex;
+  gap: .6rem;
+  justify-content: center;
+}
+.btn {
+  padding: .55rem 1.4rem;
+  border: none;
+  border-radius: 2rem;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .2s;
+  letter-spacing: .02em;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+  color: #1a1a2e;
+  box-shadow: 0 4px 14px rgba(247,151,30,.3);
+}
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(247,151,30,.45); }
+.btn-secondary {
+  background: rgba(255,255,255,.07);
+  color: #ccc;
+  border: 1px solid rgba(255,255,255,.10);
+}
+.btn-secondary:hover { background: rgba(255,255,255,.13); }
