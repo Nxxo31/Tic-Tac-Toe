@@ -34,8 +34,17 @@
     Turno de <span class="mark x" id="turnMark">X</span>
   </div>
 
+  <!-- Game mode toggle -->
+  <div class="mode-toggle" id="modeToggle">
+    <button class="mode-btn active" data-mode="pvp" id="modePvp">PvP</button>
+    <button class="mode-btn" data-mode="pvia" id="modePvia">vs IA</button>
+  </div>
+
   <!-- Board -->
-  <div class="board" id="board"></div>
+  <div class="board-wrapper" id="boardWrapper">
+    <svg class="win-line" id="winLine"></svg>
+    <div class="board" id="board"></div>
+  </div>
 
   <!-- Status -->
   <div class="status-message" id="statusMsg">¡A jugar!</div>
