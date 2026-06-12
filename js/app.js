@@ -1,149 +1,292 @@
-(function(){
-  /* ── State ──────────────────────────────────────── */
-  const N = 3;
+// Triqui — Tic-Tac-Toe (Vanilla JS, IIFE)
+// Features: PvP, Player vs AI (Minimax), localStorage, SVG win-line animation
+
+(function () {
+  'use strict';
+
+  /* ── Constants ─────────────────────────────────────── */
   const WINNING_COMBOS = [
-    [0,1,2],[3,4,5],[6,7,8],  // rows
-    [0,3,6],[1,4,7],[2,5,8],  // cols
-    [0,4,8],[2,4,6]           // diags
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
   ];
 
-  let board     = Array(N * N).fill(null);
-  let current   = 'X';               // 'X' or 'O'
-  let gameOver  = false;
-  let moves     = 0;
-
-  let scores    = { X: 0, O: 0, draws: 0 };
-  let winCells  = [];
-
-  /* ── DOM refs ───────────────────────────────────── */
+  /* ── DOM References ────────────────────────────────── */
   const boardEl      = document.getElementById('board');
-  const turnMark     = document.getElementById('turnMark');
-  const turnIndicator= document.getElementById('turnIndicator');
-  const statusMsg    = document.getElementById('statusMsg');
-  const scoreXVal    = document.getElementById('scoreXVal');
-  const scoreOVal    = document.getElementById('scoreOVal');
-  const scoreDrawsVal= document.getElementById('scoreDrawsVal');
-  const scoreXCard   = document.getElementById('scoreX');
-  const scoreOCard   = document.getElementById('scoreO');
-  const scoreDrawsCard= document.getElementById('scoreDraws');
+  const turnMarkEl   = document.getElementById('turnMark');
+  const statusMsgEl  = document.getElementById('statusMsg');
+  const scoreXEl     = document.getElementById('scoreXVal');
+  const scoreOEl     = document.getElementById('scoreOVal');
+  const scoreDrawsEl = document.getElementById('scoreDrawsVal');
   const resetBtn     = document.getElementById('resetBtn');
   const resetScoreBtn= document.getElementById('resetScoreBtn');
+  const modeBtns     = document.querySelectorAll('.mode-btn');
+  const winLine      = document.getElementById('winLine');
+  const boardWrapper = document.getElementById('boardWrapper');
 
-  /* ── Render helpers ─────────────────────────────── */
-  function renderBoard() {
-    boardEl.innerHTML = '';
-    for (let i = 0; i < N * N; i++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.idx = i;
-      if (gameOver || board[i] !== null) cell.classList.add('taken');
-      if (gameOver) cell.classList.add('game-over');
+  /* ── State ─────────────────────────────────────────── */
+  let cells   = [];
+  let board   = Array(9).fill(null);
+  let current = 'X';
+  let active  = true;
+  let mode    = 'pvp';          // 'pvp' | 'pvia'
+  let aiSymbol = 'O';
+  let humanSymbol = 'X';
 
-      if (board[i] !== null) {
-        const span = document.createElement('span');
-        span.textContent = board[i];
-        span.className = 'pop';
-        cell.appendChild(span);
+  /* ── Scores (bootstrapped from localStorage) ──────── */
+  let scores = loadScores();
+
+  function loadScores() {
+    try {
+      const raw = localStorage.getItem('triqui_scores');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.X === 'number' && typeof parsed.O === 'number' && typeof parsed.draws === 'number') {
+          return parsed;
+        }
       }
+    } catch (_) { /* ignore corrupt data */ }
+    return { X: 0, O: 0, draws: 0 };
+  }
 
-      // highlight win cells
-      if (winCells.includes(i)) cell.classList.add('win');
+  function saveScores() {
+    try { localStorage.setItem('triqui_scores', JSON.stringify(scores)); } catch (_) {}
+  }
 
-      cell.addEventListener('click', () => handleClick(i));
+  function renderStats() {
+    scoreXEl.textContent     = scores.X;
+    scoreOEl.textContent     = scores.O;
+    scoreDrawsEl.textContent = scores.draws;
+  }
+
+  /* ── Board ─────────────────────────────────────────── */
+  function createBoard() {
+    boardEl.innerHTML = '';
+    cells = [];
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.dataset.index = i;
+      cell.addEventListener('click', onCellClick);
       boardEl.appendChild(cell);
+      cells.push(cell);
     }
   }
 
-  function updateScores() {
-    scoreXVal.textContent     = scores.X;
-    scoreOVal.textContent     = scores.O;
-    scoreDrawsVal.textContent = scores.draws;
+  function onCellClick(e) {
+    const idx = e.target.dataset.index;
+    if (!active || board[idx]) return;
+    makeMove(idx, current);
+
+    if (mode === 'pvia' && active) {
+      setTimeout(aiMove, 300);
+    }
   }
 
-  function updateTurn() {
-    if (gameOver) return;
-    turnMark.textContent = current;
-    turnMark.className = 'mark ' + (current === 'X' ? 'x' : 'o');
+  function makeMove(idx, player) {
+    board[idx] = player;
+    const cell = cells[idx];
+    cell.classList.add('taken');
 
-    // highlight active score card
-    scoreXCard.classList.toggle('active', current === 'X');
-    scoreOCard.classList.toggle('active', current === 'O');
-    scoreDrawsCard.classList.remove('active');
-  }
+    const span = document.createElement('span');
+    span.textContent = player;
+    span.classList.add('pop');
+    cell.appendChild(span);
 
-  function setStatus(text, type) {
-    statusMsg.textContent = text;
-    statusMsg.className = 'status-message' + (type ? ' ' + type : '');
-  }
+    if (cell.querySelector('span')) {
+      const s = cell.querySelector('span');
+      s.classList.add(player === 'X' ? 'x' : 'o');
+    }
 
-  function updateAll() {
-    renderBoard();
-    updateScores();
+    const winner = checkWinner(board);
+    if (winner) {
+      endGame(winner.combo, player);
+      return;
+    }
+    if (board.every(c => c !== null)) {
+      endGame(null, null, true);
+      return;
+    }
+
+    current = current === 'X' ? 'O' : 'X';
     updateTurn();
   }
 
-  /* ── Game logic ─────────────────────────────────── */
-  function checkWinner() {
+  function updateTurn() {
+    turnMarkEl.textContent = current;
+    turnMarkEl.className = `mark ${current.toLowerCase()}`;
+  }
+
+  function endGame(winCombo, winner, isDraw = false) {
+    active = false;
+    cells.forEach(c => c.classList.add('game-over'));
+
+    if (isDraw) {
+      statusMsgEl.textContent = '¡Empate!';
+      statusMsgEl.className = 'status-message draw';
+      scores.draws++;
+    } else if (winner) {
+      statusMsgEl.textContent = `¡Ganó ${winner}!`;
+      statusMsgEl.className = 'status-message win';
+      scores[winner]++;
+      highlightWin(winCombo);
+      drawWinLine(winCombo);
+    }
+
+    saveScores();
+    renderStats();
+  }
+
+  function highlightWin(combo) {
+    combo.forEach(i => {
+      cells[i].classList.add('win');
+    });
+  }
+
+  /* ── SVG Win Line ──────────────────────────────────── */
+  function drawWinLine(combo) {
+    if (!winLine || !combo || combo.length < 2) return;
+
+    const [a, , c] = combo;
+    const cellA = cells[a].getBoundingClientRect();
+    const cellC = cells[c].getBoundingClientRect();
+    const wrap  = boardWrapper.getBoundingClientRect();
+
+    const x1 = cellA.left + cellA.width / 2 - wrap.left;
+    const y1 = cellA.top + cellA.height / 2 - wrap.top;
+    const x2 = cellC.left + cellC.width / 2 - wrap.left;
+    const y2 = cellC.top + cellC.height / 2 - wrap.top;
+
+    let line = winLine.querySelector('line');
+    if (!line) {
+      line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      winLine.appendChild(line);
+    }
+
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+
+    winLine.classList.add('show');
+  }
+
+  function checkWinner(b) {
     for (const combo of WINNING_COMBOS) {
-      const [a,b,c] = combo;
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        winCells = combo;
-        return board[a];
+      const [a, b1, c1] = combo;
+      if (b[a] && b[a] === b[b1] && b[a] === b[c1]) {
+        return { winner: b[a], combo };
       }
     }
     return null;
   }
 
-  function handleClick(idx) {
-    if (gameOver) return;
-    if (board[idx] !== null) return;
-
-    // place mark
-    board[idx] = current;
-    moves++;
-
-    // check
-    const winner = checkWinner();
-    if (winner) {
-      gameOver = true;
-      scores[winner]++;
-      const name = winner === 'X' ? 'X' : 'O';
-      setStatus('¡' + name + ' gana! 🎉', 'win');
-      updateAll();
-      return;
-    }
-
-    if (moves === N * N) {
-      // draw
-      gameOver = true;
-      scores.draws++;
-      setStatus('¡Empate!', 'draw');
-      updateAll();
-      return;
-    }
-
-    // switch turn
-    current = current === 'X' ? 'O' : 'X';
-    updateAll();
+  /* ── Minimax AI ───────────────────────────────────── */
+  function aiMove() {
+    if (!active) return;
+    const idx = bestMove();
+    if (idx !== -1) makeMove(idx, current);
   }
 
+  function bestMove() {
+    let best = -1;
+    let bestVal = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!board[i]) {
+        board[i] = aiSymbol;
+        const val = minimax(board, 0, false, -Infinity, Infinity);
+        board[i] = null;
+        if (val > bestVal) {
+          bestVal = val;
+          best = i;
+        }
+      }
+    }
+    return best;
+  }
+
+  function minimax(b, depth, isMax, alpha, beta) {
+    const res = checkWinner(b);
+    if (res) return res.winner === aiSymbol ? 10 - depth : depth - 10;
+    if (b.every(c => c !== null)) return 0;
+
+    if (isMax) {
+      let maxEval = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = aiSymbol;
+          const ev = minimax(b, depth + 1, false, alpha, beta);
+          b[i] = null;
+          maxEval = Math.max(maxEval, ev);
+          alpha = Math.max(alpha, ev);
+          if (beta <= alpha) break;
+        }
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = humanSymbol;
+          const ev = minimax(b, depth + 1, true, alpha, beta);
+          b[i] = null;
+          minEval = Math.min(minEval, ev);
+          beta = Math.min(beta, ev);
+          if (beta <= alpha) break;
+        }
+      }
+      return minEval;
+    }
+  }
+
+  /* ── Reset ──────────────────────────────────────────── */
   function resetBoard() {
-    board     = Array(N * N).fill(null);
-    current   = 'X';
-    gameOver  = false;
-    moves     = 0;
-    winCells  = [];
-    setStatus('¡A jugar!');
-    updateAll();
+    board.fill(null);
+    active = true;
+    current = 'X';
+    updateTurn();
+    statusMsgEl.textContent = '¡A jugar!';
+    statusMsgEl.className = 'status-message';
+
+    cells.forEach(c => {
+      c.classList.remove('taken', 'game-over', 'win');
+      c.innerHTML = '';
+    });
+
+    if (winLine) {
+      winLine.classList.remove('show');
+      const line = winLine.querySelector('line');
+      if (line) {
+        line.setAttribute('x1', 0); line.setAttribute('y1', 0);
+        line.setAttribute('x2', 0); line.setAttribute('y2', 0);
+      }
+    }
   }
 
-  function resetScores() {
+  function resetAllScores() {
     scores = { X: 0, O: 0, draws: 0 };
+    saveScores();
+    renderStats();
+  }
+
+  /* ── Mode Toggle ──────────────────────────────────── */
+  function setMode(m) {
+    mode = m;
+    modeBtns.forEach(btn => {
+      if (btn.dataset.mode === m) btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
     resetBoard();
   }
 
-  /* ── Init ───────────────────────────────────────── */
+  /* ── Event Listeners ──────────────────────────────── */
   resetBtn.addEventListener('click', resetBoard);
-  resetScoreBtn.addEventListener('click', resetScores);
-  resetBoard();
+  resetScoreBtn.addEventListener('click', resetAllScores);
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  });
+
+  /* ── Init ──────────────────────────────────────────── */
+  createBoard();
+  renderStats();
 })();
