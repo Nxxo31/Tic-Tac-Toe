@@ -1,5 +1,5 @@
-// Triqui — Tic-Tac-Toe (Vanilla JS, IIFE)
-// Features: PvP, Player vs AI (Minimax), localStorage, SVG win-line animation
+// Triqui — Tic-Tac-Toe V2 (Vanilla JS, IIFE)
+// Features: PvP, AI (Easy/Impossible), localStorage leaderboard, animated win
 
 (function () {
   'use strict';
@@ -12,26 +12,37 @@
   ];
 
   /* ── DOM References ────────────────────────────────── */
-  const boardEl      = document.getElementById('board');
-  const turnMarkEl   = document.getElementById('turnMark');
-  const statusMsgEl  = document.getElementById('statusMsg');
-  const scoreXEl     = document.getElementById('scoreXVal');
-  const scoreOEl     = document.getElementById('scoreOVal');
-  const scoreDrawsEl = document.getElementById('scoreDrawsVal');
-  const resetBtn     = document.getElementById('resetBtn');
-  const resetScoreBtn= document.getElementById('resetScoreBtn');
-  const modeBtns     = document.querySelectorAll('.mode-btn');
-  const winLine      = document.getElementById('winLine');
-  const boardWrapper = document.getElementById('boardWrapper');
+  const boardEl        = document.getElementById('board');
+  const turnMarkEl     = document.getElementById('turnMark');
+  const statusMsgEl    = document.getElementById('statusMsg');
+  const scoreXEl       = document.getElementById('scoreXVal');
+  const scoreOEl       = document.getElementById('scoreOVal');
+  const scoreDrawsEl   = document.getElementById('scoreDrawsVal');
+  const resetBtn       = document.getElementById('resetBtn');
+  const resetScoreBtn  = document.getElementById('resetScoreBtn');
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+  const modeBtns       = document.querySelectorAll('.mode-btn');
+  const diffBtns       = document.querySelectorAll('.diff-btn');
+  const winLine        = document.getElementById('winLine');
+  const boardWrapper   = document.getElementById('boardWrapper');
+  const diffToggle     = document.getElementById('difficultyToggle');
+
+  /* Leaderboard modal elements */
+  const lbModal        = document.getElementById('leaderboardModal');
+  const lbBody         = document.getElementById('leaderboardBody');
+  const lbClose        = document.getElementById('leaderboardClose');
+  const lbClear        = document.getElementById('leaderboardClearBtn');
 
   /* ── State ─────────────────────────────────────────── */
-  let cells   = [];
-  let board   = Array(9).fill(null);
-  let current = 'X';
-  let active  = true;
-  let mode    = 'pvp';          // 'pvp' | 'pvia'
-  let aiSymbol = 'O';
-  let humanSymbol = 'X';
+  let cells        = [];
+  let board        = Array(9).fill(null);
+  let current      = 'X';
+  let active       = true;
+  let mode         = 'pvp';       // 'pvp' | 'pvia'
+  let difficulty   = 'impossible'; // 'easy' | 'impossible'
+  let aiSymbol     = 'O';
+  let humanSymbol  = 'X';
+  let iaThinking   = false;
 
   /* ── Scores (bootstrapped from localStorage) ──────── */
   let scores = loadScores();
@@ -59,6 +70,86 @@
     scoreDrawsEl.textContent = scores.draws;
   }
 
+  /* ── Leaderboard ──────────────────────────────────── */
+  const LB_KEY = 'triqui_leaderboard';
+  const LB_MAX = 50;
+
+  function loadLeaderboard() {
+    try {
+      const raw = localStorage.getItem(LB_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return [];
+  }
+
+  function saveLeaderboard(lb) {
+    try { localStorage.setItem(LB_KEY, JSON.stringify(lb)); } catch (_) {}
+  }
+
+  function addLeaderboardEntry(result, mode, difficulty) {
+    const lb = loadLeaderboard();
+    lb.unshift({
+      result,       // 'X' | 'O' | 'draw'
+      mode,         // 'pvp' | 'pvia'
+      difficulty,   // 'easy' | 'impossible' | null
+      timestamp: Date.now()
+    });
+    if (lb.length > LB_MAX) lb.length = LB_MAX;
+    saveLeaderboard(lb);
+  }
+
+  function renderLeaderboard() {
+    const lb = loadLeaderboard();
+    if (lb.length === 0) {
+      lbBody.innerHTML = '<p class="leaderboard-empty">No hay partidas registradas aún.</p>';
+      return;
+    }
+
+    const medals = ['gold', 'silver', 'bronze'];
+    const resultLabel = { X: 'Ganó X', O: 'Ganó O', draw: 'Empate' };
+    const resultClass = { X: 'x-win', O: 'o-win', draw: 'draw' };
+    const modeLabel = { pvp: 'PvP', pvia: 'vs IA' };
+    const diffLabel = { easy: 'Fácil', impossible: 'Imposible' };
+
+    const html = lb.slice(0, 20).map((e, i) => {
+      const date = new Date(e.timestamp);
+      const dateStr = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' }) +
+                      ' · ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const medalClass = i < 3 ? medals[i] : '';
+      const modeStr = e.mode === 'pvia' ? `${modeLabel[e.mode]} (${diffLabel[e.difficulty]})` : modeLabel[e.mode];
+      return `
+        <li class="lb-entry lb-${e.result === 'draw' ? 'draw' : 'win'}">
+          <span class="lb-rank ${medalClass}">#${i + 1}</span>
+          <div class="lb-info">
+            <div class="lb-result ${resultClass[e.result]}">${resultLabel[e.result]}</div>
+            <div class="lb-mode">${modeStr}</div>
+          </div>
+          <span class="lb-date">${dateStr}</span>
+        </li>`;
+    }).join('');
+
+    lbBody.innerHTML = `<ul class="leaderboard-list">${html}</ul>`;
+  }
+
+  function clearLeaderboard() {
+    saveLeaderboard([]);
+    renderLeaderboard();
+  }
+
+  /* ── SVG gradient defs (injected once) ───────────── */
+  function ensureSVGDefs() {
+    if (winLine.querySelector('defs')) return;
+    const svg = winLine;
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    defs.innerHTML = `
+      <linearGradient id="winGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#4ade80"/>
+        <stop offset="50%" stop-color="#22d3ee"/>
+        <stop offset="100%" stop-color="#a78bfa"/>
+      </linearGradient>`;
+    svg.insertBefore(defs, svg.firstChild);
+  }
+
   /* ── Board ─────────────────────────────────────────── */
   function createBoard() {
     boardEl.innerHTML = '';
@@ -74,12 +165,20 @@
   }
 
   function onCellClick(e) {
+    if (iaThinking || !active) return;
     const idx = e.target.dataset.index;
     if (!active || board[idx]) return;
     makeMove(idx, current);
 
     if (mode === 'pvia' && active) {
-      setTimeout(aiMove, 300);
+      iaThinking = true;
+      boardEl.classList.add('ia-thinking');
+      const delay = difficulty === 'easy' ? 400 : 300;
+      setTimeout(() => {
+        aiMove();
+        iaThinking = false;
+        boardEl.classList.remove('ia-thinking');
+      }, delay);
     }
   }
 
@@ -91,12 +190,8 @@
     const span = document.createElement('span');
     span.textContent = player;
     span.classList.add('pop');
+    span.classList.add(player === 'X' ? 'x' : 'o');
     cell.appendChild(span);
-
-    if (cell.querySelector('span')) {
-      const s = cell.querySelector('span');
-      s.classList.add(player === 'X' ? 'x' : 'o');
-    }
 
     const winner = checkWinner(board);
     if (winner) {
@@ -125,12 +220,18 @@
       statusMsgEl.textContent = '¡Empate!';
       statusMsgEl.className = 'status-message draw';
       scores.draws++;
+      addLeaderboardEntry('draw', mode, mode === 'pvia' ? difficulty : null);
+      boardEl.classList.add('shake');
+      setTimeout(() => boardEl.classList.remove('shake'), 600);
     } else if (winner) {
-      statusMsgEl.textContent = `¡Ganó ${winner}!`;
+      const winText = winner === humanSymbol ? '¡Ganaste!' : '¡Ganó la IA!';
+      statusMsgEl.textContent = winText;
       statusMsgEl.className = 'status-message win';
       scores[winner]++;
-      highlightWin(winCombo);
-      drawWinLine(winCombo);
+      if (winCombo) highlightWin(winCombo);
+      if (winCombo) drawWinLine(winCombo);
+      triggerConfetti();
+      addLeaderboardEntry(winner, mode, mode === 'pvia' ? difficulty : null);
     }
 
     saveScores();
@@ -138,14 +239,13 @@
   }
 
   function highlightWin(combo) {
-    combo.forEach(i => {
-      cells[i].classList.add('win');
-    });
+    combo.forEach(i => cells[i].classList.add('win'));
   }
 
-  /* ── SVG Win Line ──────────────────────────────────── */
+  /* ── SVG Win Line ─────────────────────────────────── */
   function drawWinLine(combo) {
     if (!winLine || !combo || combo.length < 2) return;
+    ensureSVGDefs();
 
     const [a, , c] = combo;
     const cellA = cells[a].getBoundingClientRect();
@@ -171,6 +271,38 @@
     winLine.classList.add('show');
   }
 
+  /* ── Confetti effect ─────────────────────────────── */
+  function triggerConfetti() {
+    let overlay = boardWrapper.querySelector('.confetti-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.classList.add('confetti-overlay');
+      boardWrapper.appendChild(overlay);
+    }
+    overlay.innerHTML = '';
+    const colors = ['#4ade80','#22d3ee','#ffd200','#f472b6','#a78bfa','#fb923c'];
+    for (let i = 0; i < 24; i++) {
+      const dot = document.createElement('div');
+      const size = 4 + Math.random() * 6;
+      const angle = (i / 24) * Math.PI * 2;
+      const radius = 20 + Math.random() * 40;
+      dot.style.cssText = `
+        position: absolute;
+        width: ${size}px; height: ${size}px;
+        border-radius: 50%;
+        background: ${colors[i % colors.length]};
+        left: 50%; top: 50%;
+        transform: translate(-50%, -50%);
+        animation: confetti-particle .7s ease-out forwards;
+        --dx: ${Math.cos(angle) * radius}px;
+        --dy: ${Math.sin(angle) * radius}px;
+      `;
+      overlay.appendChild(dot);
+    }
+    overlay.classList.add('active');
+    setTimeout(() => overlay.classList.remove('active'), 900);
+  }
+
   function checkWinner(b) {
     for (const combo of WINNING_COMBOS) {
       const [a, b1, c1] = combo;
@@ -181,11 +313,22 @@
     return null;
   }
 
-  /* ── Minimax AI ───────────────────────────────────── */
+  /* ── AI Moves ────────────────────────────────────── */
   function aiMove() {
     if (!active) return;
-    const idx = bestMove();
+    let idx;
+    if (difficulty === 'easy') {
+      idx = randomMove();
+    } else {
+      idx = bestMove();
+    }
     if (idx !== -1) makeMove(idx, current);
+  }
+
+  function randomMove() {
+    const available = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
+    if (available.length === 0) return -1;
+    return available[Math.floor(Math.random() * available.length)];
   }
 
   function bestMove() {
@@ -242,8 +385,10 @@
   /* ── Reset ──────────────────────────────────────────── */
   function resetBoard() {
     board.fill(null);
-    active = true;
-    current = 'X';
+    active    = true;
+    current   = 'X';
+    iaThinking = false;
+    boardEl.classList.remove('ia-thinking', 'shake');
     updateTurn();
     statusMsgEl.textContent = '¡A jugar!';
     statusMsgEl.className = 'status-message';
@@ -264,29 +409,69 @@
   }
 
   function resetAllScores() {
+    if (!confirm('¿Resetear todos los puntajes?')) return;
     scores = { X: 0, O: 0, draws: 0 };
     saveScores();
     renderStats();
   }
 
-  /* ── Mode Toggle ──────────────────────────────────── */
+  /* ── Mode & Difficulty Toggle ─────────────────────── */
   function setMode(m) {
     mode = m;
     modeBtns.forEach(btn => {
-      if (btn.dataset.mode === m) btn.classList.add('active');
-      else btn.classList.remove('active');
+      btn.classList.toggle('active', btn.dataset.mode === m);
+    });
+    diffToggle.style.display = m === 'pvia' ? 'flex' : 'none';
+    resetBoard();
+  }
+
+  function setDifficulty(d) {
+    difficulty = d;
+    diffBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.diff === d);
     });
     resetBoard();
+  }
+
+  /* ── Leaderboard Modal ────────────────────────────── */
+  function openLeaderboard() {
+    renderLeaderboard();
+    lbModal.classList.add('open');
+  }
+
+  function closeLeaderboard() {
+    lbModal.classList.remove('open');
   }
 
   /* ── Event Listeners ──────────────────────────────── */
   resetBtn.addEventListener('click', resetBoard);
   resetScoreBtn.addEventListener('click', resetAllScores);
-  modeBtns.forEach(btn => {
-    btn.addEventListener('click', () => setMode(btn.dataset.mode));
-  });
+  leaderboardBtn.addEventListener('click', openLeaderboard);
+  lbClose.addEventListener('click', closeLeaderboard);
+  lbModal.addEventListener('click', e => { if (e.target === lbModal) closeLeaderboard(); });
+  lbClear.addEventListener('click', () => { clearLeaderboard(); });
+
+  modeBtns.forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+  diffBtns.forEach(btn => btn.addEventListener('click', () => setDifficulty(btn.dataset.diff)));
+
+  /* ── Inject confetti keyframes ────────────────────── */
+  const style = document.createElement('style');
+  style.textContent = `
+@keyframes confetti-particle {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.3); }
+}`;
+  document.head.appendChild(style);
+
+  /* ── Service Worker Registration ─────────────────── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
 
   /* ── Init ──────────────────────────────────────────── */
   createBoard();
   renderStats();
+  ensureSVGDefs();
 })();

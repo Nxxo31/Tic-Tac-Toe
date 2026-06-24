@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Triqui · Tic-Tac-Toe</title>
+<meta name="description" content="Juego de Triqui (Tic-Tac-Toe) con IA, leaderboard y modo offline">
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<!-- Theme color for browser chrome -->
+<meta name="theme-color" content="#0f0c29">
+<!-- Apple touch icon -->
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -34,10 +41,16 @@
     Turno de <span class="mark x" id="turnMark">X</span>
   </div>
 
-  <!-- Game mode toggle -->
-  <div class="mode-toggle" id="modeToggle">
-    <button class="mode-btn active" data-mode="pvp" id="modePvp">PvP</button>
-    <button class="mode-btn" data-mode="pvia" id="modePvia">vs IA</button>
+  <!-- Game mode & difficulty controls -->
+  <div class="controls-row">
+    <div class="mode-toggle" id="modeToggle">
+      <button class="mode-btn active" data-mode="pvp" id="modePvp">PvP</button>
+      <button class="mode-btn" data-mode="pvia" id="modePvia">vs IA</button>
+    </div>
+    <div class="difficulty-toggle" id="difficultyToggle" style="display:none;">
+      <button class="diff-btn active" data-diff="easy" id="diffEasy">Fácil</button>
+      <button class="diff-btn" data-diff="impossible" id="diffImpossible">Imposible</button>
+    </div>
   </div>
 
   <!-- Board -->
@@ -53,6 +66,23 @@
   <div class="btn-group">
     <button class="btn btn-primary" id="resetBtn">↻ Nuevo juego</button>
     <button class="btn btn-secondary" id="resetScoreBtn">Reset puntajes</button>
+    <button class="btn btn-secondary" id="leaderboardBtn">🏆 Records</button>
+  </div>
+</div>
+
+<!-- Leaderboard Modal -->
+<div class="modal-overlay" id="leaderboardModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🏆 Leaderboard</h2>
+      <button class="modal-close" id="leaderboardClose">&times;</button>
+    </div>
+    <div class="modal-body" id="leaderboardBody">
+      <p class="leaderboard-empty">No hay partidas registradas aún.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="leaderboardClearBtn">🗑 Limpiar historial</button>
+    </div>
   </div>
 </div>
 
