@@ -13,3 +13,9 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Scratch / dep manifests (proyecto vanilla — sin dependencias npm)
+package.json
+package-lock.json
+playwright-package.json
+node_modules/

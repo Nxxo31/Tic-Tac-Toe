@@ -1,8 +1,92 @@
 /* ── Reset & Base ─────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Theme Variables (Dark — default) ─────────────── */
+:root {
+  --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  --container-bg: rgba(255,255,255,.06);
+  --container-border: rgba(255,255,255,.08);
+  --text-primary: #e0e0e0;
+  --text-secondary: rgba(255,255,255,.35);
+  --text-muted: rgba(255,255,255,.4);
+  --accent-x: #60a5fa;
+  --accent-o: #f472b6;
+  --accent-gold: linear-gradient(90deg, #f7971e, #ffd200);
+  --accent-gold-solid: #ffd200;
+  --accent-win: #4ade80;
+  --accent-draw: #a78bfa;
+  --accent-danger: #f87171;
+  --btn-primary-bg: linear-gradient(135deg, #f7971e, #ffd200);
+  --btn-primary-color: #1a1a2e;
+  --btn-secondary-bg: rgba(255,255,255,.07);
+  --btn-secondary-border: rgba(255,255,255,.10);
+  --btn-secondary-hover: rgba(255,255,255,.13);
+  --cell-bg: rgba(255,255,255,.04);
+  --cell-border: rgba(255,255,255,.08);
+  --cell-hover: rgba(255,255,255,.10);
+  --cell-win-shadow: rgba(74,222,128,.25);
+  --cell-win-border: rgba(74,222,128,.35);
+  --surface-highlight: rgba(255,255,255,.10);
+  --surface-subtle: rgba(255,255,255,.05);
+  --overlay-bg: rgba(0,0,0,.65);
+  --modal-bg: linear-gradient(145deg, #1a1a3e, #252550);
+  --modal-border: rgba(255,255,255,.1);
+  --modal-header-border: rgba(255,255,255,.07);
+  --modal-footer-border: rgba(255,255,255,.07);
+  --lb-entry-bg: rgba(255,255,255,.05);
+  --lb-entry-border: rgba(255,255,255,.06);
+  --lb-entry-hover: rgba(255,255,255,.09);
+  --theme-btn-bg: rgba(255,255,255,.06);
+  --theme-btn-border: rgba(255,255,255,.08);
+  --theme-btn-hover: rgba(255,255,255,.12);
+}
+
+/* ── Light Theme ──────────────────────────────────── */
+[data-theme="light"] {
+  --bg-gradient: linear-gradient(135deg, #e8e0f0, #f5f0ff, #e0daf0);
+  --container-bg: rgba(255,255,255,.7);
+  --container-border: rgba(0,0,0,.08);
+  --text-primary: #2d2b4e;
+  --text-secondary: rgba(0,0,0,.35);
+  --text-muted: rgba(0,0,0,.4);
+  --accent-x: #3b82f6;
+  --accent-o: #e040a0;
+  --accent-gold: linear-gradient(90deg, #d97706, #f59e0b);
+  --accent-gold-solid: #d97706;
+  --accent-win: #16a34a;
+  --accent-draw: #7c3aed;
+  --accent-danger: #dc2626;
+  --btn-primary-bg: linear-gradient(135deg, #d97706, #f59e0b);
+  --btn-primary-color: #fff;
+  --btn-secondary-bg: rgba(0,0,0,.05);
+  --btn-secondary-border: rgba(0,0,0,.10);
+  --btn-secondary-hover: rgba(0,0,0,.10);
+  --cell-bg: rgba(0,0,0,.03);
+  --cell-border: rgba(0,0,0,.08);
+  --cell-hover: rgba(0,0,0,.06);
+  --cell-win-shadow: rgba(22,163,74,.25);
+  --cell-win-border: rgba(22,163,74,.35);
+  --surface-highlight: rgba(0,0,0,.08);
+  --surface-subtle: rgba(0,0,0,.04);
+  --overlay-bg: rgba(0,0,0,.4);
+  --modal-bg: linear-gradient(145deg, #f8f6ff, #eeebf8);
+  --modal-border: rgba(0,0,0,.1);
+  --modal-header-border: rgba(0,0,0,.07);
+  --modal-footer-border: rgba(0,0,0,.07);
+  --lb-entry-bg: rgba(0,0,0,.03);
+  --lb-entry-border: rgba(0,0,0,.06);
+  --lb-entry-hover: rgba(0,0,0,.06);
+  --theme-btn-bg: rgba(0,0,0,.05);
+  --theme-btn-border: rgba(0,0,0,.08);
+  --theme-btn-hover: rgba(0,0,0,.10);
+}
+
+/* ── Smooth theme transitions ─────────────────────── */
+* { transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; }
+
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  background: var(--bg-gradient);
   min-height: 100vh;
   display: flex;
   justify-content: center;
