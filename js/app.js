@@ -192,6 +192,7 @@
     span.classList.add('pop');
     span.classList.add(player === 'X' ? 'x' : 'o');
     cell.appendChild(span);
+    playMove();
 
     const winner = checkWinner(board);
     if (winner) {
@@ -223,15 +224,17 @@
       addLeaderboardEntry('draw', mode, mode === 'pvia' ? difficulty : null);
       boardEl.classList.add('shake');
       setTimeout(() => boardEl.classList.remove('shake'), 600);
+      playDraw();
     } else if (winner) {
       const winText = winner === humanSymbol ? '¡Ganaste!' : '¡Ganó la IA!';
-      statusMsgEl.textContent = winText;
+      statusMsgEl.textContent = mode === 'pvp' ? `¡Ganó ${winner}!` : winText;
       statusMsgEl.className = 'status-message win';
       scores[winner]++;
       if (winCombo) highlightWin(winCombo);
       if (winCombo) drawWinLine(winCombo);
       triggerConfetti();
       addLeaderboardEntry(winner, mode, mode === 'pvia' ? difficulty : null);
+      playWin();
     }
 
     saveScores();
@@ -442,6 +445,52 @@
   function closeLeaderboard() {
     lbModal.classList.remove('open');
   }
+
+  /* ── Theme Toggle ───────────────────────────────────── */
+  const themeBtn = document.getElementById('themeBtn');
+  let currentTheme = localStorage.getItem('triqui_theme') || 'dark';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('triqui_theme', theme);
+  }
+
+  themeBtn.addEventListener('click', () => {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(currentTheme);
+  });
+
+  applyTheme(currentTheme);
+
+  /* ── Sound Effects (Web Audio API) ─────────────────── */
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+  function playTone(freq, duration, type = 'sine', volume = 0.15) {
+    const ctx = ensureAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  }
+  function playMove() { playTone(440 + Math.random() * 100, 0.08, 'square', 0.1); }
+  function playWin() {
+    playTone(523, 0.12, 'sine', 0.2);
+    setTimeout(() => playTone(659, 0.12, 'sine', 0.2), 120);
+    setTimeout(() => playTone(784, 0.2, 'sine', 0.2), 240);
+  }
+  function playDraw() { playTone(300, 0.15, 'triangle', 0.12); }
 
   /* ── Event Listeners ──────────────────────────────── */
   resetBtn.addEventListener('click', resetBoard);
