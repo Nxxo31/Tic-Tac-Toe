@@ -1,0 +1,10 @@
+[
+  {
+    "fecha": "2026-08-25T04:46:33+00:00",
+    "modo": "pve",
+    "jugador_x": "humano",
+    "jugador_o": "IA",
+    "ganador": "empate",
+    "jugadas": 5
+  }
+]
