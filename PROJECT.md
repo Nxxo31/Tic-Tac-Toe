@@ -83,7 +83,7 @@ Tic-Tac-Toe web con IA invencible (Minimax + Alpha-Beta pruning), estética glas
 | R-11 | Headers de seguridad en vercel.json | vercel.json | ✅ | `/` responde con headers CSP |
 | R-12 | Theme claro/oscuro persistente | js/app.js | ✅ | Toggle + reload conserva preferencia |
 | R-13 | Sonidos move/win/draw (Web Audio API) | js/app.js | ✅ | Eventos de audio reproducidos |
-| R-14 | Tests E2E con Playwright | playwright-package.json + triqui.spec.js | ⏳ | Pendiente — Issue #1 |
+| R-14 | Verificación E2E con Playwright | — | ⏳ | Pendiente — Issue #1 |
 
 ---
 
@@ -140,7 +140,7 @@ Service worker con estrategia cache-first para assets (CSS, JS, iconos) y networ
 
 ## ⚠️ Limitaciones Conocidas
 
-1. Sin tests automatizados — `playwright-package.json` y `triqui.spec.js` existen sin integrar al CI (Issue #1)
+1. Sin verificación automatizada — `playwright-package.json` y `triqui.spec.js` existen sin integrar al CI (Issue #1). Gates actuales: LSP + build + code review manual
 2. Solo PvP local — multijugador online requiere WebSocket backend (pendiente)
 3. Dificultad "Intermedia" no existe — solo Fácil o Imposible (sin grado intermedio)
 4. El cache del service worker requiere bump manual de `CACHE_VERSION` en sw.js al cambiar assets
